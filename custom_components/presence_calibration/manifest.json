@@ -1,10 +1,12 @@
 {
   "domain": "presence_calibration",
   "name": "Presence Calibration",
-  "codeowners": [],
+  "codeowners": ["@sherlock-homo"],
   "config_flow": true,
   "dependencies": ["http", "matter", "panel_custom", "websocket_api"],
+  "documentation": "https://github.com/sherlock-homo/presencedaddy-ha#readme",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/sherlock-homo/presencedaddy-ha/issues",
   "version": "0.1.0"
 }

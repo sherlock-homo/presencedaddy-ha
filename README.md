@@ -4,9 +4,11 @@ Presence Calibration is the Home Assistant app for presenceDaddy. Use it to see 
 
 ## Install
 
+[![Open in Home Assistant](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sherlock-homo&repository=presencedaddy-ha&category=integration)
+
 Use Home Assistant Core 2026.11.1 or later and a presenceDaddy sensor with calibration firmware 0.1.4 or later. Commission the sensor into Home Assistant and have its private calibration code ready.
 
-In Home Assistant, open **Settings → Marketplace → Add from link**, add the GitHub URL for this repository, and install **Presence Calibration**. Under **Settings → Devices & services**, add Presence Calibration, select your sensor, and enter its calibration code. Open the Presence Calibration panel to start the room walkthrough. [Home Assistant Marketplace guide](https://www.home-assistant.io/integrations/marketplace/#custom-repositories)
+Use the button above to add this repository to Marketplace and install **Presence Calibration**. You can also add the repository from **Settings → Marketplace → Add from link**. Under **Settings → Devices & services**, add Presence Calibration, select your sensor, and enter its calibration code. Open the Presence Calibration panel to start the room walkthrough. [Home Assistant Marketplace guide](https://www.home-assistant.io/integrations/marketplace/#custom-repositories)
 
 The [installation guide](INSTALL.md) covers manual installation, the room walkthrough, and how to issue a replacement code.
 
