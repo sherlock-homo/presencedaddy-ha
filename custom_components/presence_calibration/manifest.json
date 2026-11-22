@@ -1,0 +1,10 @@
+{
+  "domain": "presence_calibration",
+  "name": "Presence Calibration",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["http", "matter", "panel_custom", "websocket_api"],
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "version": "0.1.0"
+}

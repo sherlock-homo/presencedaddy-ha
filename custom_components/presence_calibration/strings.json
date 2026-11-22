@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Presence Sensor",
+        "description": "Select your existing Matter device and enter the calibration setup code from its USB console.",
+        "data": {
+          "device_id": "Matter device",
+          "setup_code": "Calibration setup code"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconnect the Presence Sensor",
+        "description": "Enter the device's current calibration setup code.",
+        "data": {
+          "setup_code": "Calibration setup code"
+        }
+      }
+    },
+    "error": {
+      "certificate_mismatch": "The HTTPS certificate did not match the fingerprint from the Matter device.",
+      "cannot_connect": "The calibration service did not respond to verification.",
+      "device_unavailable": "The calibration service is unavailable.",
+      "invalid_code": "Enter the 26-character calibration setup code from the device.",
+      "invalid_fingerprint": "The Matter device did not return a valid certificate fingerprint.",
+      "invalid_response": "The device returned an unexpected calibration response.",
+      "matter_unavailable": "Home Assistant could not get data from the Matter device.",
+      "no_routed_address": "Matter has no routed IPv6 address for the device.",
+      "unsupported_device": "The selected Matter device could not be matched.",
+      "unsupported_firmware": "This firmware does not expose calibration protocol version 1."
+    },
+    "abort": {
+      "already_configured": "This Presence Sensor is already configured.",
+      "matter_unavailable": "The Matter integration is unavailable.",
+      "no_devices": "No compatible commissioned Presence Sensor was found.",
+      "reconfigure_successful": "The Presence Sensor was reconfigured."
+    }
+  }
+}
