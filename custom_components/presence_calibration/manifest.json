@@ -8,5 +8,6 @@
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/sherlock-homo/presencedaddy-ha/issues",
-  "version": "0.1.0"
+  "requirements": ["segno==1.6.6"],
+  "version": "0.4.0"
 }

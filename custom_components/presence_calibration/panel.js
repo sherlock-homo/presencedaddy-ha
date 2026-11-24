@@ -1,3 +1,6 @@
+import './floorplan-panel.js';
+import './device-controls.js';
+
 const API = "presence_calibration";
 const ROOM = [-6000, 6000, 0, 6000];
 const EMPTY_CHECK_SECONDS = 30;
@@ -109,6 +112,7 @@ const template = `
   * { box-sizing: border-box; }
   header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--app-header-background-color, var(--panel-card)); border-bottom: 1px solid var(--panel-border); }
   header h1 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -.015em; }
+  .app-tabs { display:flex; gap:6px; margin-left:auto; }
   ha-menu-button { flex: none; }
   main { max-width: 1120px; margin: auto; padding: 24px 20px 42px; }
   h2 { font-size: 23px; letter-spacing: -.025em; line-height: 1.2; margin: 0 0 10px; }
@@ -159,6 +163,9 @@ const template = `
   small { display: block; color: var(--panel-muted); margin-top: 6px; }
   [hidden] { display: none !important; }
   @media (max-width: 720px) {
+    header { flex-wrap:wrap; }
+    .app-tabs { flex-basis:100%; margin-left:0; }
+    .app-tabs button { flex:1; }
     main { padding: 14px 12px 24px; }
     .card { padding: 15px; }
     .layout { grid-template-columns: 1fr; gap: 10px; }
@@ -168,8 +175,8 @@ const template = `
     .steps button { font-size: 13px; }
   }
 </style>
-<header><ha-menu-button></ha-menu-button><h1>Presence Calibration</h1></header>
-<main>
+<header><ha-menu-button></ha-menu-button><h1>Presence Calibration</h1><div class="app-tabs" role="group" aria-label="App sections"><button id="show-calibration" aria-pressed="true" class="primary">Calibration</button><button id="show-floorplans" aria-pressed="false">Floor plans</button><button id="show-devices" aria-pressed="false">Device tools</button></div></header>
+<main id="calibration-view">
   <p id="notice" class="notice" role="status" hidden></p>
   <section id="connect" class="card connect">
     <h2>Choose your sensor</h2>
@@ -230,13 +237,14 @@ const template = `
       </section>
     </div>
   </section>
-</main>`;
+</main><presence-floorplan-panel id="floorplan-view" hidden></presence-floorplan-panel><presence-device-controls id="device-tools" hidden></presence-device-controls>`;
 
 class PresenceCalibrationPanel extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({mode: "open"}).innerHTML = template;
     this.$ = id => this.shadowRoot.getElementById(id);
+    this.appView = 'calibration';
     this.entries = [];
     this.step = 0;
     this.regionIndex = 0;
@@ -256,6 +264,9 @@ class PresenceCalibrationPanel extends HTMLElement {
     });
     const handlers = {
       open: () => this.open(), close: () => this.close(),
+      "show-calibration": () => this.setAppView('calibration'),
+      "show-floorplans": () => this.setAppView('floorplans'),
+      "show-devices": () => this.setAppView('devices'),
       "empty-check": () => this.startCheck("empty", EMPTY_CHECK_SECONDS),
       "seat-check": () => this.startCheck("seat", SEAT_CHECK_SECONDS),
       "reset-walk": () => { this.walkTrace.clear(); this.trail = []; this.draw(); },
@@ -266,6 +277,8 @@ class PresenceCalibrationPanel extends HTMLElement {
       back: () => this.setStep(this.step - 1), next: () => this.setStep(this.step + 1),
     };
     for (const [id, handler] of Object.entries(handlers)) this.$(id).onclick = handler;
+    this.$('floorplan-view').addEventListener('floorplan-calibration', event => this.applyFloorplan(event.detail));
+    this.$('device-tools').addEventListener('device-recalibrate', event => void this.chooseCalibration(event.detail));
     this.$("region").onchange = () => {
       this.regionIndex = Number(this.$("region").value);
       this.updateRegion();
@@ -278,8 +291,19 @@ class PresenceCalibrationPanel extends HTMLElement {
     map.onpointercancel = () => { this.drag = null; this.draw(); };
   }
 
+  async chooseCalibration(entryId) {
+    await this.setAppView('calibration');
+    if (this.appView !== 'calibration') return;
+    if (!this.entries.some(entry => entry.entry_id === entryId)) await this.loadEntries();
+    if (!this.entries.some(entry => entry.entry_id === entryId)) return;
+    this.$('device').value = entryId;
+    this.notice('After moving the sensor, update its placement in Floor plans and check doorway links before turning named automations back on.');
+  }
+
   set hass(value) {
     this._hass = value;
+    this.$('floorplan-view').hass = value;
+    this.$('device-tools').hass = value;
     const menu = this.shadowRoot.querySelector("ha-menu-button");
     menu.hass = value;
     if (this.isConnected && value?.connection !== this.connection) {
@@ -302,6 +326,51 @@ class PresenceCalibrationPanel extends HTMLElement {
   disconnectedCallback() {
     this.resize.disconnect();
     this.close({quiet: true});
+  }
+
+  async setAppView(view) {
+    if (view === this.appView || this.switchingView || this.opening || this.committing) return;
+    if (view !== 'calibration' && this.entry && JSON.stringify(this.saved.profile) !== JSON.stringify(this.draft)) {
+      this.notice(view === 'floorplans' ? 'Save or reset the calibration draft before opening floor plans.' : 'Save or reset the calibration draft before leaving calibration.', true);
+      return;
+    }
+    this.switchingView = true;
+    try {
+      const plans = this.$('floorplan-view');
+      const devices = this.$('device-tools');
+      const showPlans = view === 'floorplans';
+      const showDevices = view === 'devices';
+      if (this.appView === 'calibration') await this.close({quiet: true});
+      if (!showPlans) await plans.setActive(false);
+      if (!showDevices) await devices.setActive(false);
+      this.appView = view;
+      this.$('calibration-view').hidden = view !== 'calibration';
+      plans.hidden = !showPlans;
+      devices.hidden = !showDevices;
+      for (const name of ['calibration', 'floorplans', 'devices']) {
+        const button = this.$(`show-${name}`);
+        button.setAttribute('aria-pressed', String(name === view));
+        button.classList.toggle('primary', name === view);
+      }
+      if (showPlans) await plans.setActive(true);
+      if (showDevices) await devices.setActive(true);
+    } finally { this.switchingView = false; }
+  }
+
+  async applyFloorplan({entryId, profile}) {
+    await this.setAppView('calibration');
+    if (this.appView !== 'calibration') return;
+    if (!this.entries.some(entry => entry.entry_id === entryId)) await this.loadEntries();
+    if (!this.entries.some(entry => entry.entry_id === entryId)) {
+      this.notice('Add the sensor in Presence Calibration before applying a room.', true);
+      return;
+    }
+    this.$('device').value = entryId;
+    await this.open();
+    if (this.entry?.entry_id === entryId) {
+      this.setDraft(profile);
+      this.setStep(2);
+    }
   }
 
   notice(text = "", isError = false, source = "action") {

@@ -26,7 +26,7 @@ from yarl import URL
 from .const import (
     FINGERPRINT_PATH,
     HTTPS_PORT,
-    MATTER_PRODUCT_ID,
+    MATTER_PRODUCT_IDS,
     MATTER_VENDOR_ID,
     PROTOCOL_PATH,
     PROTOCOL_VERSION,
@@ -77,7 +77,7 @@ def _matching_node(hass: HomeAssistant, device: dr.DeviceEntry) -> MatterNode | 
     if (
         info is not None
         and info.vendorID == MATTER_VENDOR_ID
-        and info.productID == MATTER_PRODUCT_ID
+        and info.productID in MATTER_PRODUCT_IDS
     ):
         return node
     return None
@@ -208,6 +208,7 @@ class CalibrationClient:
         self._fingerprint = aiohttp.Fingerprint(bytes.fromhex(fingerprint))
         self._authorization = f"Bearer {setup_code}"
         self._last_address: IPv6Address | None = None
+        self._request_lock = asyncio.Lock()
 
     async def _addresses(self, prefer_cache: bool) -> list[IPv6Address]:
         client, node_id = _resolve_node(self._hass, self._device_id)
@@ -229,12 +230,22 @@ class CalibrationClient:
         body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Send one request. Retry mutations only when a connection never opened."""
+        started = False
         try:
             async with asyncio.timeout(_REQUEST_TIMEOUT):
-                return await self._request(method, path, session=session, body=body)
+                # The device has room for a calibration connection and its peer,
+                # not parallel sockets for preview, display, and live tracking.
+                async with self._request_lock:
+                    started = True
+                    return await self._request(method, path, session=session, body=body)
         except TimeoutError:
-            self._last_address = None
-            code = "device_unavailable" if method == "GET" else "request_uncertain"
+            if started:
+                self._last_address = None
+            code = (
+                "request_uncertain"
+                if started and method != "GET"
+                else "device_unavailable"
+            )
             raise CalibrationError(code) from None
         except CalibrationError as error:
             if error.code == "request_uncertain":

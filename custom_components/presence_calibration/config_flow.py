@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
+from aiohttp import ClientSession, TCPConnector
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
@@ -78,14 +78,17 @@ class PresenceCalibrationConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 setup_code = normalize_setup_code(user_input[CONF_SETUP_CODE])
                 fingerprint = await read_fingerprint(self.hass, device_id)
-                client = CalibrationClient(
-                    self.hass,
-                    async_get_clientsession(self.hass),
-                    device_id,
-                    fingerprint,
-                    setup_code,
-                )
-                profile_envelope(await client.request("GET", "/v1/profile"))
+                # The runtime uses a different certificate-pin pool key. Close
+                # setup's TCP connection when the probe completes, even if the
+                # device would otherwise leave it open for keep-alive.
+                async with ClientSession(
+                    connector=TCPConnector(force_close=True),
+                    headers={"Connection": "close"},
+                ) as session:
+                    client = CalibrationClient(
+                        self.hass, session, device_id, fingerprint, setup_code
+                    )
+                    profile_envelope(await client.request("GET", "/v1/profile"))
             except CalibrationError as error:
                 key = CONF_SETUP_CODE if error.code == "invalid_code" else "base"
                 errors[key] = (
