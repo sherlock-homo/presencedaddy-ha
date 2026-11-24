@@ -1,12 +1,14 @@
 # Install Presence Calibration in Home Assistant
 
-You need Home Assistant admin access and a presence sensor already commissioned into that Home Assistant instance. The sensor needs calibration firmware 0.1.4 or later and its private calibration code. The code is on the setup card that came with the sensor. The Matter pairing QR code is separate.
+You need Home Assistant admin access and a presence sensor already commissioned into that Home Assistant instance. The sensor needs calibration firmware 0.1.4 or later and its private calibration code. Waveshare LCD firmware **0.3.2 or later** shows the private calibration code on the screen after Matter pairing. Setup is buttonless.
 
 The integration targets Home Assistant Core 2026.11.1 with the stock Matter Server 9.3.0 app. Home Assistant needs an IPv6 route to the sensor through your existing Thread border router. Your phone connects to Home Assistant as usual.
 
 ## Install from a Marketplace repository
 
-On Home Assistant 2026.11 and later, open **Settings → Marketplace → Add from link** and enter the public GitHub repository URL for Presence Calibration. Connect GitHub when prompted, then open **Presence Calibration** in the Marketplace and select **Install**. Follow any restart prompt before adding the integration. [Home Assistant custom repository instructions](https://www.home-assistant.io/integrations/marketplace/#custom-repositories)
+After you pair a Waveshare LCD running firmware 0.3.2 or later with Matter and it joins Thread, scan the **Home Assistant install QR** on the screen with your phone camera. Open **Presence Calibration** in your Marketplace, select **Install**, and follow any restart prompt.
+
+To add the repository manually on Home Assistant 2026.11 or later, open **Settings → Marketplace → Add from link** and enter the public GitHub repository URL for Presence Calibration. Connect GitHub when prompted, then open **Presence Calibration** in the Marketplace and select **Install**. Follow any restart prompt before adding the integration. [Home Assistant custom repository instructions](https://www.home-assistant.io/integrations/marketplace/#custom-repositories)
 
 The installation URL is [sherlock-homo/presencedaddy-ha](https://github.com/sherlock-homo/presencedaddy-ha). On an installation that still has HACS, use **Custom repositories** and choose **Integration**. The preview ZIP installs the supplied version from disk. Marketplace and HACS install versions published to GitHub. [Open in Marketplace](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sherlock-homo&repository=presencedaddy-ha&category=integration) · [Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=sherlock-homo&repository=presencedaddy-ha&category=integration)
 
@@ -18,10 +20,10 @@ The installation URL is [sherlock-homo/presencedaddy-ha](https://github.com/sher
 ## Connect your sensor
 
 1. Open **Settings → Devices & services → Add integration** and search for **Presence Calibration**.
-2. Select the commissioned sensor and enter its calibration code. If you have more than one sensor, select the matching device name and area.
+2. Select the commissioned sensor by its name and area. On Waveshare LCD firmware **0.3.2 or later**, enter both lines shown beside the install QR as **one 26-character code**, with no spaces. The code stays on screen through restarts until Home Assistant completes setup. You can keep a copy on your private setup card. If your sensor came with a setup card, its existing code also works.
 3. Open **Presence Calibration** in the sidebar, choose the sensor, and tap **Start calibration**.
 
-On a fresh compatible LCD unit, hold BOOT for 2–7 seconds and release to generate the private calibration code and briefly display it. Keep the code before the display returns to setup. On an already provisioned unit, use its existing setup card or Home Assistant entry. BOOT preserves working credentials.
+**Older Waveshare LCD firmware (0.3.0 only).** If the unit has never issued a code, hold BOOT for two seconds at the install screen and release to show it briefly. If the unit already issued a code, use its setup card.
 
 ## Walk the room
 
@@ -33,7 +35,7 @@ On a fresh compatible LCD unit, hold BOOT for 2–7 seconds and release to gener
 
 ## Set the LCD and revisit calibration
 
-Home Assistant marks setup complete on compatible LCD firmware (Waveshare 0.3.0 or later) after the integration loads. If the sensor was briefly unreachable, a later calibration request or opening **Device tools** retries completion. You can also choose **Mark setup complete**. Saving a room profile also marks setup complete.
+Home Assistant marks setup complete on compatible LCD firmware (Waveshare 0.3.0 or later) after the integration loads. The setup QR and code disappear, and the default display switches to the tracking eyes. If the sensor was briefly unreachable, a later calibration request or opening **Device tools** retries completion. You can also choose **Mark setup complete**. Saving a room profile also marks setup complete.
 
 In **Device tools**, choose Horizontal or Vertical and select Eyes or Dashboard. Save LCD settings. You can select either display mode whenever you want.
 
@@ -50,6 +52,6 @@ To move the sensor, pause named automation events and remove links to doorways i
 
 In the companion firmware checkout, build signed calibration firmware with `./build.sh --lcd-ota` for Waveshare LCD hardware or `./build.sh --ota` for the original XIAO C6. Follow the firmware kit’s USB bootstrap or Matter update instructions for that board.
 
-Run `calibration provision` once at 115200 baud on the USB console to generate the device's certificate and display its calibration code. This works before Matter commissioning. Put that code on a private setup card alongside the Matter pairing information. `calibration rotate` replaces the setup code and retains the certificate. After a full physical factory reset, run `calibration provision` again and replace the setup card.
+Waveshare LCD firmware 0.3.2 and later provisions the calibration credential automatically after Matter commissioning. For a unit supplied with a setup card, you can issue the first code before commissioning with `calibration provision` at 115200 baud over USB. The console command `calibration rotate` revokes the previous code and retains the certificate. After a full factory reset on LCD firmware 0.3.2 or later, pair it again to see the new code, then replace the setup card. For a sensor provisioned manually on older firmware, run `calibration provision` again to issue a replacement card.
 
 The HA panel sends calibration data locally. Live points are held in memory during the session. The sensor stores the saved and previous profiles. The map shows observed radar positions. A successful one-minute seated check covers that position and sensor placement during the check.
