@@ -5,11 +5,13 @@ from tempfile import TemporaryDirectory
 from types import MappingProxyType, SimpleNamespace
 from unittest.mock import patch
 
+from homeassistant import loader
 from homeassistant.components.matter.helpers import get_node_device_identifier
 from homeassistant.config_entries import ConfigEntries, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import frame
 
 from custom_components.presence_calibration import device
 
@@ -20,6 +22,8 @@ class DeviceDiscoveryTests(unittest.IsolatedAsyncioTestCase):
             hass = HomeAssistant(directory)
             hass.config_entries = ConfigEntries(hass, {})
             await hass.config_entries.async_initialize()
+            loader.async_setup(hass)
+            frame.async_setup(hass)
             dr.async_setup(hass)
             await dr.async_load(hass, load_empty=True)
             await ar.async_load(hass, load_empty=True)
