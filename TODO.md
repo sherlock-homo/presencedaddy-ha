@@ -6,3 +6,9 @@
 - [x] Tag the initial local release `0.1.0`.
 - [x] Publish `0.1.0` on GitHub.
 - [x] Verify the public archive matches the Git tag, load it in isolated Home Assistant Core, and check the Marketplace redirect.
+
+## Marketplace setup repair (0.4.1)
+
+- [x] Fix Matter sensor discovery when the registry includes three-part identifiers.
+- [x] Reproduce the HTTP 500 on 0.4.0 and exercise the repaired setup form in an isolated Home Assistant instance.
+- [x] Package the integration with its on-screen code instructions and verify the ZIP against the release source.

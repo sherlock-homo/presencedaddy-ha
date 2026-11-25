@@ -6,20 +6,20 @@ import asyncio
 import json
 import re
 from collections import Counter
+from collections.abc import Iterator
 from ipaddress import IPv6Address, IPv6Network
 from typing import Any
 
 import aiohttp
 from homeassistant.components.matter.helpers import (
     get_matter,
-    get_node_from_device_entry,
+    get_node_device_identifier,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from matter_server.client import MatterClient
 from matter_server.client.exceptions import NotConnected
-from matter_server.client.models.node import MatterNode
 from matter_server.common.errors import MatterError
 from yarl import URL
 
@@ -55,52 +55,47 @@ class CalibrationError(Exception):
         self.status = status
 
 
-@callback
-def _matter_client(hass: HomeAssistant) -> MatterClient:
+def _registered_sensors(
+    hass: HomeAssistant,
+) -> Iterator[tuple[dr.DeviceEntry, MatterClient, int]]:
+    """Look up supported nodes by the root identifier on their Matter fabric."""
     if not hass.config_entries.async_loaded_entries("matter"):
         raise CalibrationError("matter_unavailable")
-    client = get_matter(hass).matter_client
-    if client.server_info is None:
+    adapter = get_matter(hass)
+    client = adapter.matter_client
+    server_info = client.server_info
+    if server_info is None:
         raise CalibrationError("matter_unavailable")
-    return client
-
-
-@callback
-def _matching_node(hass: HomeAssistant, device: dr.DeviceEntry) -> MatterNode | None:
-    if not any(
-        domain == "matter" and identifier.endswith("-MatterNodeDevice")
-        for domain, identifier in device.identifiers
-    ):
-        return None
-    node = get_node_from_device_entry(hass, device)
-    info = node.device_info if node is not None else None
-    if (
-        info is not None
-        and info.vendorID == MATTER_VENDOR_ID
-        and info.productID in MATTER_PRODUCT_IDS
-    ):
-        return node
-    return None
+    registry = dr.async_get(hass)
+    for node in client.get_nodes():
+        info = node.device_info
+        if (
+            info is None
+            or info.vendorID != MATTER_VENDOR_ID
+            or info.productID not in MATTER_PRODUCT_IDS
+        ):
+            continue
+        identifier = get_node_device_identifier(server_info, node.node_id)
+        device = registry.async_get_device_by_identifier(
+            identifier, adapter.config_entry.entry_id
+        )
+        if device is not None:
+            yield device, client, node.node_id
 
 
 @callback
 def eligible_devices(hass: HomeAssistant) -> dict[str, str]:
     """Return present registry devices that match the Matter VID and PID."""
-    _matter_client(hass)
-    registry = dr.async_get(hass)
     areas = ar.async_get(hass)
     candidates: list[tuple[str, str, int]] = []
-    for device in registry.devices.values():
-        node = _matching_node(hass, device)
-        if node is None:
-            continue
+    for device, _, node_id in _registered_sensors(hass):
         label = device.name_by_user or device.name or "Presence Sensor"
         if (
             device.area_id
             and (area := areas.async_get_area(device.area_id)) is not None
         ):
             label = f"{label} ({area.name})"
-        candidates.append((device.id, label, node.node_id))
+        candidates.append((device.id, label, node_id))
     labels = Counter(label.casefold() for _, label, _ in candidates)
     return {
         device_id: f"{label} (Matter node {node_id})"
@@ -112,14 +107,10 @@ def eligible_devices(hass: HomeAssistant) -> dict[str, str]:
 
 @callback
 def _resolve_node(hass: HomeAssistant, device_id: str) -> tuple[MatterClient, int]:
-    client = _matter_client(hass)
-    device = dr.async_get(hass).async_get(device_id, include_child_devices=False)
-    if device is None:
-        raise CalibrationError("unsupported_device")
-    node = _matching_node(hass, device)
-    if node is None:
-        raise CalibrationError("unsupported_device")
-    return client, node.node_id
+    for device, client, node_id in _registered_sensors(hass):
+        if device.id == device_id:
+            return client, node_id
+    raise CalibrationError("unsupported_device")
 
 
 def normalize_setup_code(value: str) -> str:

@@ -40,8 +40,8 @@ const ERRORS = {
   no_routed_address: "Home Assistant could not find a reachable Thread IPv6 address for this sensor.",
   certificate_mismatch: "The sensor's identity changed. Check the device and reconfigure this integration.",
   entry_unavailable: "The integration entry is unavailable. Reload it in Home Assistant and try again.",
-  unsupported: "This sensor needs calibration firmware and a provisioned setup code.",
-  invalid_code: "The stored calibration code was rejected. Reconfigure this integration with the code from the setup card.",
+  unsupported: "Pair the sensor with Matter and wait for the calibration code to appear on its display.",
+  invalid_code: "The sensor rejected the stored calibration code. Reconfigure Presence Calibration with your current private code.",
   invalid_request: "The sensor could not read these settings. Reopen calibration and try again.",
   invalid_profile: "The sensor rejected these bounds. Check the room and any areas inside it.",
   unauthorized: "The calibration code was rejected. Check the integration's setup code.",
@@ -186,7 +186,7 @@ const template = `
       <div class="row"><button id="open" class="primary">Start calibration</button></div>
     </div>
     <div id="install" hidden>
-      <p>Add the Presence Calibration integration, select your Matter sensor and enter the calibration code from its setup card.</p>
+      <p>Add the Presence Calibration integration and select your Matter sensor. Enter the two lines of the code on its display as one 26-character code with no spaces.</p>
       <a class="action" href="/config/integrations">Open integrations</a>
     </div>
     <p id="loading" class="muted">Looking for sensors…</p>

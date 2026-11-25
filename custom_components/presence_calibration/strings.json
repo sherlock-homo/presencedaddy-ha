@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add a Presence Sensor",
-        "description": "Select your existing Matter device and enter the calibration setup code from its USB console.",
+        "description": "Select your Matter sensor. Enter the two lines of the private code on its display as one 26-character code with no spaces. Save a private copy for reconnection.",
         "data": {
           "device_id": "Matter device",
           "setup_code": "Calibration setup code"
@@ -11,7 +11,7 @@
       },
       "reconfigure": {
         "title": "Reconnect the Presence Sensor",
-        "description": "Enter the device's current calibration setup code.",
+        "description": "Enter the private calibration code you saved during setup. If you replaced the code, enter the new one.",
         "data": {
           "setup_code": "Calibration setup code"
         }
@@ -21,7 +21,7 @@
       "certificate_mismatch": "The HTTPS certificate did not match the fingerprint from the Matter device.",
       "cannot_connect": "The calibration service did not respond to verification.",
       "device_unavailable": "The calibration service is unavailable.",
-      "invalid_code": "Enter the 26-character calibration setup code from the device.",
+      "invalid_code": "Check that the private calibration code has all 26 characters with no spaces.",
       "invalid_fingerprint": "The Matter device did not return a valid certificate fingerprint.",
       "invalid_response": "The device returned an unexpected calibration response.",
       "matter_unavailable": "Home Assistant could not get data from the Matter device.",
